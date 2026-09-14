@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transactionSchema, TransactionFormValues } from "@/schemas/transaction";
@@ -9,7 +10,6 @@ import { toast } from "sonner";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,11 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DialogClose } from "@/components/ui/dialog";
-import { useRef } from "react";
 
 export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isPending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   const form = useForm<TransactionFormValues>({
@@ -54,7 +52,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     startTransition(async () => {
       try {
         const result = await createTransaction(null, formData);
-        
+
         if (result.success) {
           toast.success(result.message);
           form.reset();
@@ -63,13 +61,12 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
         } else {
           toast.error(result.message);
           if (result.errors) {
-            // Map server errors back to the form if needed
             Object.entries(result.errors).forEach(([key, messages]) => {
               form.setError(key as any, { type: "server", message: messages[0] });
             });
           }
         }
-      } catch (error) {
+      } catch {
         toast.error("An unexpected error occurred.");
       }
     });
@@ -77,7 +74,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
 
   return (
     <Form {...form}>
-      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control as any}
           name="title"

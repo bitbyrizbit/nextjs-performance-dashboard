@@ -2,11 +2,10 @@
 
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu } from "lucide-react";
+import { Moon, Sun, Menu, Activity } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
 import Link from "next/link";
-import { Activity } from "lucide-react";
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();

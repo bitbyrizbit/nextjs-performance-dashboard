@@ -34,8 +34,6 @@ export async function createTransaction(
     };
   }
 
-  // Simulate a successful mutation (e.g. database insert)
-  console.log("Server successfully processed transaction:", validatedFields.data);
 
   revalidatePath("/dashboard");
 
