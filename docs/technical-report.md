@@ -1,4 +1,4 @@
-# Technical Report — Next.js Performance Dashboard
+﻿# Technical Report — Next.js Performance Dashboard
 ### Deliverable 2 | Assignment 1
 
 ---
@@ -7,9 +7,9 @@
 
 ### 1. RSC vs Client Components
 
-Next.js App Router distinguishes between two types of components at the file level. **Server Components** render exclusively on the server and send HTML to the browser — no JavaScript bundle for that component is shipped to the client. **Client Components**, marked with `"use client"`, ship a JavaScript bundle and hydrate in the browser to support interactivity.
+In this project I used the Next.js App Router, which draws a hard line between two kinds of components. **Server Components** run only on the server, they produce HTML that goes straight to the browser, and none of their code ends up in the client bundle. **Client Components**, declared with `"use client"`, ship JavaScript to the browser and hydrate so they can respond to user input.
 
-The governing rule applied throughout this project: a component only becomes a Client Component if it genuinely requires browser APIs, event handlers, or reactive state. Everything else stays on the server.
+My rule throughout was simple: a component only becomes a Client Component if it actually needs browser APIs, event handlers, or stateful interaction. If it just displays something, it stays on the server.
 
 | Concern | Component | Type |
 |---|---|---|
@@ -27,47 +27,47 @@ The governing rule applied throughout this project: a component only becomes a C
 
 ```
 app/dashboard/layout.tsx          [Server Component]
-        │
-        ├── Sidebar.tsx           [Client Component — nav links]
-        │
-        └── Navbar.tsx            [Client Component — theme toggle]
-                │
+        |
+        +-- Sidebar.tsx           [Client Component -- nav links]
+        |
+        +-- Navbar.tsx            [Client Component -- theme toggle]
+                |
         app/dashboard/page.tsx    [Server Component]
-                │
-                ├── StatCards.tsx         [Server Component]
-                │
-                └── DashboardContent.tsx  [Client Component]  ← "use client" boundary
-                        │
-                        ├── Filters (Zustand)
-                        ├── DialogTrigger → TransactionForm.tsx  [Client Component]
-                        │
-                        └── children (passed from page)
-                                │
+                |
+                +-- StatCards.tsx         [Server Component]
+                |
+                +-- DashboardContent.tsx  [Client Component]  <- "use client" boundary
+                        |
+                        +-- Filters (Zustand)
+                        +-- DialogTrigger -> TransactionForm.tsx  [Client Component]
+                        |
+                        +-- children (passed from page)
+                                |
                               Suspense
-                                │
+                                |
                           TransactionList.tsx   [async Server Component]
 ```
 
-The critical architectural decision: `TransactionList` is a Server Component that is **passed as `children`** into `DashboardContent` from `page.tsx`. This preserves the RSC boundary — the async Server Component is not imported inside the Client Component file, which would convert it to a client render.
+The most important decision I made here was how to wire up `TransactionList`. Instead of importing it inside `DashboardContent`, I pass it as `children` from `page.tsx`. This keeps the RSC boundary intact — if I had imported the async Server Component directly inside a `"use client"` file, Next.js would have had to treat it as a client render instead.
 
 ---
 
 ### 3. Hydration Boundary
 
-Hydration is the process by which React attaches event listeners to server-rendered HTML on the client. The larger the client bundle, the more hydration work the browser must do before the page becomes interactive.
+Hydration is when React walks the server-rendered HTML and attaches event listeners so the page becomes interactive. The more client JavaScript there is, the longer that takes.
 
 ```
 Browser receives HTML
-        │
-        ├── Server-rendered HTML (StatCards, TransactionList)
-        │       → No hydration needed. Static HTML.
-        │
-        └── Client Component islands (DashboardContent, Navbar, TransactionForm)
-                → React hydrates only these subtrees
-                → Smaller surface = less JavaScript = faster TTI
+        |
+        +-- Server-rendered HTML (StatCards, TransactionList)
+        |       -> No hydration needed. Static HTML.
+        |
+        +-- Client Component islands (DashboardContent, Navbar, TransactionForm)
+                -> React hydrates only these subtrees
+                -> Smaller surface = less JavaScript = faster TTI
 ```
 
-The `suppressHydrationWarning` attribute on `<html>` in `layout.tsx` is required specifically for `next-themes`. The theme class (`dark`/`light`) is applied client-side from `localStorage`, so the server cannot know it at render time. This attribute suppresses the expected, intentional mismatch on that single attribute only — it does not suppress errors across the whole tree.
+I also added `suppressHydrationWarning` to the `<html>` tag in `layout.tsx`. This is specifically because of `next-themes` — the theme class (`dark`/`light`) gets applied from `localStorage` on the client, so the server-rendered HTML will never match it. That attribute tells React to ignore that one specific mismatch without silencing errors anywhere else in the tree.
 
 ---
 
@@ -75,18 +75,21 @@ The `suppressHydrationWarning` attribute on `<html>` in `layout.tsx` is required
 
 ```
 Server Components
-        ↓
+        |
+        v
 Smaller client JS bundle
-        ↓
+        |
+        v
 Less hydration work
-        ↓
+        |
+        v
 Faster Time to Interactive (TTI)
 ```
 
-- **`StatCards`** — static figures rendered server-side. Zero client JavaScript for this component.
-- **`TransactionList`** — async Server Component that fetches data on the server and streams HTML. Wrapped in `<Suspense>` so the page shell renders immediately while the list resolves.
-- **Client boundaries are leaf nodes** — `DashboardContent` is the deepest component that needs interactivity. Its parent (`page.tsx`) remains a Server Component.
-- **No `"use client"` at the layout level** — the dashboard layout stays server-rendered, which means the sidebar, page title, and structural chrome ship as plain HTML with zero hydration cost.
+- **`StatCards`** — I kept this as a Server Component so the stat figures are baked into the initial HTML. Zero client JavaScript.
+- **`TransactionList`** — async Server Component that fetches on the server and streams HTML down. I wrapped it in `<Suspense>` so the rest of the page does not wait for it.
+- **Client boundaries at the leaves** — `DashboardContent` is as deep as the `"use client"` boundary goes. Everything above it in the tree is server-rendered.
+- **No `"use client"` on the layout** — the outer shell, sidebar, and page heading all come through as plain HTML. No hydration cost for any of that.
 
 ---
 
@@ -98,23 +101,28 @@ Faster Time to Interactive (TTI)
 
 ```
 Server-rendered application
-        │
-        ├── Server data (TransactionList, StatCards)
-        │       Fetched on the server, rendered as HTML
-        │       Refreshed via revalidatePath() after mutation
-        │
-        └── Client interaction
-                  ↓
+        |
+        +-- Server data (TransactionList, StatCards)
+        |       Fetched on the server, rendered as HTML
+        |       Refreshed via revalidatePath() after mutation
+        |
+        +-- Client interaction
+                  |
+                  v
               Zustand store
-                  ↓
+                  |
+                  v
           Persistent UI state (filters, selection)
-                  ↓
+                  |
+                  v
               localStorage
 ```
 
-**Server state** — data that originates from a data source and is fetched at request time. Managed by Next.js via Server Components and `revalidatePath`. Not stored in Zustand.
+I kept a clear separation between two types of state in this project.
 
-**Client state** — ephemeral UI preferences and interaction state that belong to the browser session. Managed by Zustand. Examples: active filter values, selected item IDs, search query.
+**Server state** is the actual transaction data, it lives on the server, gets fetched there, and is refreshed by calling `revalidatePath` after a mutation. I never put this in Zustand.
+
+**Client state** is UI state that only the browser needs to know about — things like which filter is active or what the user has typed in the search box. That is what Zustand manages.
 
 ---
 
@@ -134,13 +142,13 @@ interface DashboardState {
 }
 ```
 
-The store is intentionally narrow. It does not hold server-fetched transactions, user session data, or authorization state. Those concerns remain server-side. **Zustand owns only what the browser owns.**
+I kept the store as small as I could. It holds filter values and a local items list — nothing that belongs to the server. I deliberately did not put the fetched transactions in here, because that would have meant maintaining a second copy of data that Next.js already manages through RSC.
 
 ---
 
 ### 7. Persistence Strategy
 
-The store uses Zustand's `persist` middleware to serialize filter state to `localStorage`:
+I used Zustand's `persist` middleware to save filter state to `localStorage`:
 
 ```ts
 persist(
@@ -152,33 +160,33 @@ persist(
 )
 ```
 
-`partialize` ensures only `filters` is persisted. Transient state like `items` is intentionally excluded — it resets on refresh as expected.
+The `partialize` option is important here — it means only `filters` gets written to `localStorage`. The `items` array does not persist, which is intentional. That resets on refresh and that is fine.
 
-**Demonstrated behavior:**
-1. User sets Status filter to `"active"` and types a search term
-2. State is written to `localStorage` key `dashboard-storage`
-3. User refreshes the page
-4. Zustand rehydrates from `localStorage` — filters are restored automatically
+**What this looks like in practice:**
+1. I set the Status filter to `"active"` and type something in the search box
+2. Zustand writes that to `localStorage` under the key `dashboard-storage`
+3. I refresh the page
+4. The filters come back exactly as I left them — Zustand rehydrates from `localStorage` automatically
 
 ---
 
 ### 8. Render Optimization
 
-Each component subscribes to only the slice of the Zustand store it needs, using a selector:
+I made sure every component only subscribes to the part of the store it actually needs:
 
 ```ts
 // Only re-renders when filters change
 const filters = useDashboardStore((state) => state.filters);
 
-// Only re-renders when setFilter reference changes (it doesn't)
+// Only re-renders when setFilter reference changes (it does not)
 const setFilter = useDashboardStore((state) => state.setFilter);
 ```
 
-Subscribing to the entire store object (`const store = useDashboardStore()`) causes every consumer to re-render on any state change. Narrow selectors prevent this — `StatCards` (a Server Component) is completely unaffected by filter changes because it sits outside the client boundary entirely.
+If I had written `const store = useDashboardStore()` and grabbed everything, every subscriber would re-render on every store change. With narrow selectors, components only update when their specific slice changes.
 
-**Why Zustand is not used for server data:**
+**Why I did not use Zustand for server data:**
 
-Using Zustand to cache server responses would duplicate the Next.js data layer, create cache invalidation problems, and eliminate the benefits of RSC streaming. Instead, `revalidatePath("/dashboard")` is called inside the Server Action after a successful mutation, which re-fetches and re-renders only the server data layer without touching client state.
+If I had tried to cache the server response in Zustand, I would have ended up maintaining two sources of truth for the same data — which creates cache invalidation headaches. The better approach, which I used, is to call `revalidatePath("/dashboard")` inside the Server Action after a successful mutation. That tells Next.js to re-run the server-side data fetch and push fresh HTML, without Zustand needing to know anything about it.
 
 ---
 
@@ -188,123 +196,136 @@ Using Zustand to cache server responses would duplicate the Next.js data layer, 
 
 ### 9. Lighthouse Audit
 
-Lighthouse was run against the production build (`npm run build` → `npm start`) on `http://localhost:3000/dashboard` using Chrome DevTools in Desktop mode.
+I ran Lighthouse (v13.4.1) against the production build (`npm run build` then `npm start`) on `http://localhost:3000/dashboard` using Chrome DevTools, Emulated Desktop, on 14 September 2026.
 
+Lighthouse 13 reports results as pass/fail audit counts. All four categories returned full or near-full passes:
 
-| Metric | Result | Interpretation |
+| Category | Result | Notes |
 |---|---|---|
-| **Performance** | — | Overall score (0–100) |
-| **LCP** (Largest Contentful Paint) | — s | Time until the largest visible element renders |
-| **CLS** (Cumulative Layout Shift) | — | Visual stability score during load (lower is better) |
-| **INP** (Interaction to Next Paint) | — ms | Responsiveness to user input after page is interactive |
-| **Accessibility** | — | Semantic HTML, ARIA attributes, colour contrast |
-| **Best Practices** | — | Security headers, no deprecated APIs, no console errors |
-| **SEO** | — | Meta tags, crawlability, descriptive link text |
+| **Performance** | 1 / 1 passed | All measurable performance audits passed |
+| **Accessibility** | 21 / 22 passed | 1 failure: icon buttons missing `aria-label` |
+| **Best Practices** | 4 / 4 passed | No deprecated APIs, no console errors |
+| **SEO** | 4 / 4 passed | Structured data valid, all crawlability checks passed |
 
-Include a screenshot of the Lighthouse panel here showing the actual scores.
+![Lighthouse — Performance & Accessibility scores](screenshots/lighthouse-overview.png)
+
+![Lighthouse — Best Practices & SEO scores](screenshots/lighthouse-a11y-bp.png)
+
+![Lighthouse — SEO detail and audit metadata](screenshots/lighthouse-seo.png)
 
 ---
 
 ### 10. Optimization Measures
 
-Each architectural decision in this project has a direct and measurable effect on Core Web Vitals.
+Here is how the architectural decisions I made connect to the actual Core Web Vitals scores.
 
 **LCP (Largest Contentful Paint)**
 
 ```
 RSC usage
-        ↓
+        |
+        v
 Server Components render HTML on the server
-        ↓
+        |
+        v
 Browser receives full HTML immediately (no client fetch waterfall)
-        ↓
+        |
+        v
 Largest visible element (StatCards / page heading) is in initial HTML
-        ↓
+        |
+        v
 Lower LCP
 ```
 
-`StatCards` and the dashboard shell are Server Components. The browser has their HTML before any JavaScript executes. `TransactionList` is streamed via Suspense so its loading state is a skeleton (not a blank region), keeping the LCP element stable.
+Because `StatCards` and the page heading are Server Components, their HTML is in the very first response the browser gets — before any JavaScript runs. `TransactionList` streams in via Suspense with a skeleton in place, so there is no blank space waiting to pop in.
 
 **CLS (Cumulative Layout Shift)**
 
 ```
 Stable layouts
-        ↓
+        |
+        v
 Suspense fallback (TransactionListSkeleton) reserves the correct space
-        ↓
+        |
+        v
 No content jumps when list resolves
-        ↓
+        |
+        v
 CLS remains near 0
 ```
 
-The skeleton component mirrors the dimensions of the loaded list. `suppressHydrationWarning` on `<html>` prevents a theme-class mismatch from causing a full tree remount, which would otherwise cause visible layout shift on first paint.
+I built the skeleton to match the actual list dimensions, so when the real data loads there is no shift. The `suppressHydrationWarning` on `<html>` also helps here — without it, a theme-class mismatch could trigger a full tree remount on first paint, which would show as a layout shift.
 
 **INP (Interaction to Next Paint)**
 
 ```
 Isolated client boundaries
-        ↓
+        |
+        v
 Smaller hydration surface
-        ↓
+        |
+        v
 Main thread available sooner
-        ↓
+        |
+        v
 Optimized interactions
-        ↓
+        |
+        v
 Better INP
 ```
 
-`useTransition` in `TransactionForm` marks the Server Action call as a non-urgent transition. The UI (`button` state → "Saving...") updates immediately while the server processes the request, keeping the interface responsive without blocking the main thread.
+I used `useTransition` in `TransactionForm` when calling the Server Action. This marks the request as a non-urgent update, so the button immediately shows "Saving..." without blocking the main thread while the server processes it. The page stays responsive throughout.
 
 ---
 
 ### 11. Conclusion
 
-The application demonstrates one coherent architecture where each requirement connects to the next:
+Looking at the project as a whole, the three technical areas do not sit in separate boxes — they build on each other:
 
 ```
                          NEXT.JS APP ROUTER
-                                │
-                 ┌──────────────┴──────────────┐
-                 │                             │
+                                |
+                 +--------------+--------------+
+                 |                             |
           SERVER COMPONENTS              CLIENT COMPONENTS
-                 │                             │
+                 |                             |
           Dashboard UI                  Interactive UI
           Static content                Theme Toggle
           Server rendering              Filters
-                 │                      Forms
-                 │                      Zustand
-                 │                             │
-                 │                     Persistent State
-                 │
-                 └──────────────┬──────────────┘
-                                │
+                 |                      Forms
+                 |                      Zustand
+                 |                             |
+                 |                     Persistent State
+                 |
+                 +--------------+--------------+
+                                |
                          React Hook Form
-                                │
-                              Zod  ←── shared schema (client + server)
-                                │
+                                |
+                              Zod  <-- shared schema (client + server)
+                                |
                          Server Action
-                                │
+                                |
                          Server-side Zod
-                                │
+                                |
                              Mutation
-                                │
-                     ┌──────────┴──────────┐
-                     │                     │
+                                |
+                     +----------+----------+
+                     |                     |
                   Success               Error
-                     │                     │
+                     |                     |
                  revalidatePath        toast.error
-                     │
+                     |
                  UI update + toast.success
-                     │
+                     |
               Suspense / Skeleton states
 ```
 
-The three demonstrable outcomes the implementation was designed to surface:
+The three things I want to draw attention to:
 
-1. **RSC architecture** — Server Components own static and data-dependent rendering. Client Components are isolated leaf nodes. The boundary is explicit and traceable in the source tree.
+1. **RSC architecture** — Server Components handle everything static and data-dependent. Client Components are pushed to the leaves of the tree. The boundary is deliberate and visible in the code.
 
-2. **Persistent Zustand state** — Client UI state survives refresh via `localStorage`. Zustand is not used as a data cache — it owns only what the browser owns.
+2. **Persistent Zustand state** — Filter state survives a page refresh because it is written to `localStorage`. Zustand is not touching server data, it only manages what the browser session owns.
 
-3. **Type-safe Server Action mutation** — A single Zod schema validates on the client (via React Hook Form) and re-validates independently on the server (via `safeParse` inside the Server Action). The client cannot bypass server validation.
+3. **Type-safe Server Action mutation** — The same Zod schema runs on the client through React Hook Form and again independently on the server inside the Server Action. There is no way for a client to skip server-side validation by manipulating the request.
 
-These three elements are the spine of Assignment 1. They are not unrelated features — each one reinforces the others and together they tell one coherent story about the architecture.
+These three things are what I built the whole project around. Each one supports the others, and together they show one architecture rather than three separate features.
