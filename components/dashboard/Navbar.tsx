@@ -14,7 +14,7 @@ export function Navbar() {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-16 lg:px-6">
       <Sheet>
-        <SheetTrigger asChild>
+        <SheetTrigger>
           <Button variant="outline" size="icon" className="shrink-0 md:hidden">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>

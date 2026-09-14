@@ -9,16 +9,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatCards } from "./StatCards";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { TransactionForm } from "../forms/TransactionForm";
+import { Suspense } from "react";
+import { TransactionList } from "./TransactionList";
+import { TransactionListSkeleton } from "./TransactionListSkeleton";
 
-export function DashboardContent() {
-  const { filters, setFilter, items } = useDashboardStore();
+export function DashboardContent({ children }: { children?: React.ReactNode }) {
+  const filters = useDashboardStore((state) => state.filters);
+  const setFilter = useDashboardStore((state) => state.setFilter);
 
   return (
     <div className="flex flex-col gap-6">
-      <StatCards />
-
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
           <Input
@@ -29,7 +39,7 @@ export function DashboardContent() {
           />
           <Select
             value={filters.status}
-            onValueChange={(value) => setFilter("status", value)}
+            onValueChange={(value) => setFilter("status", value || "")}
           >
             <SelectTrigger className="w-full md:w-40">
               <SelectValue placeholder="Status" />
@@ -42,14 +52,23 @@ export function DashboardContent() {
             </SelectContent>
           </Select>
         </div>
-        <Button>Add New Item</Button>
+        <Dialog>
+          <DialogTrigger>
+            <Button>Add New Item</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add Transaction</DialogTitle>
+              <DialogDescription>
+                Create a new transaction record here. Click save when you're done.
+              </DialogDescription>
+            </DialogHeader>
+            <TransactionForm />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="rounded-md border bg-background">
-        <div className="p-4 text-sm text-muted-foreground">
-          {items.length === 0 ? "No items found. Add one to get started." : "List of items..."}
-        </div>
-      </div>
+      {children}
     </div>
   );
 }

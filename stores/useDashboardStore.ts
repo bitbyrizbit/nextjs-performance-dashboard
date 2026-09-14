@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface DashboardState {
   theme: "light" | "dark" | "system";
@@ -12,17 +13,25 @@ interface DashboardState {
   setItems: (items: any[]) => void;
 }
 
-export const useDashboardStore = create<DashboardState>((set) => ({
-  theme: "system",
-  setTheme: (theme) => set({ theme }),
-  filters: {
-    status: "all",
-    search: "",
-  },
-  setFilter: (key, value) =>
-    set((state) => ({
-      filters: { ...state.filters, [key]: value },
-    })),
-  items: [],
-  setItems: (items) => set({ items }),
-}));
+export const useDashboardStore = create<DashboardState>()(
+  persist(
+    (set) => ({
+      theme: "system",
+      setTheme: (theme) => set({ theme }),
+      filters: {
+        status: "all",
+        search: "",
+      },
+      setFilter: (key, value) =>
+        set((state) => ({
+          filters: { ...state.filters, [key]: value },
+        })),
+      items: [],
+      setItems: (items) => set({ items }),
+    }),
+    {
+      name: "dashboard-storage",
+      partialize: (state) => ({ filters: state.filters }), // Only persist filters
+    }
+  )
+);
