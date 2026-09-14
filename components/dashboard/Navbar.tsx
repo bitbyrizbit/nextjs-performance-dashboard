@@ -13,15 +13,15 @@ export function Navbar() {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-16 lg:px-6">
       <Sheet>
-        <SheetTrigger>
-          <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle navigation menu</span>
-          </Button>
+        <SheetTrigger
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground md:hidden"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu className="h-5 w-5" />
         </SheetTrigger>
         <SheetContent side="left" className="w-[240px] p-0">
           <SheetHeader className="sr-only">
-             <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetTitle>Navigation Menu</SheetTitle>
           </SheetHeader>
           <div className="flex h-14 items-center border-b px-4 lg:h-16">
             <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -30,7 +30,7 @@ export function Navbar() {
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-2">
-             <Sidebar />
+            <Sidebar />
           </div>
         </SheetContent>
       </Sheet>
