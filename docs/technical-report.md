@@ -211,7 +211,6 @@ Lighthouse 13 reports results as pass/fail audit counts. All four categories ret
 
 ![Lighthouse — Best Practices & SEO scores](screenshots/lighthouse-a11y-bp.png)
 
-![Lighthouse — SEO detail and audit metadata](screenshots/lighthouse-seo.png)
 
 ---
 
