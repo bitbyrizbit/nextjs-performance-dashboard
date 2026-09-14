@@ -3,7 +3,7 @@
 
 ---
 
-## PAGE 1 — RSC vs Client Component Architecture
+## RSC vs Client Component Architecture
 
 ### 1. RSC vs Client Components
 
@@ -92,7 +92,7 @@ Faster Time to Interactive (TTI)
 
 ---
 
-## PAGE 2 — Server State vs Zustand Client State
+## Server State vs Zustand Client State
 
 ### 5. State Management Architecture
 
@@ -184,13 +184,12 @@ Using Zustand to cache server responses would duplicate the Next.js data layer, 
 
 ---
 
-## PAGE 3 — Lighthouse & Core Web Vitals
+## Lighthouse & Core Web Vitals
 
 ### 9. Lighthouse Audit
 
 Lighthouse was run against the production build (`npm run build` → `npm start`) on `http://localhost:3000/dashboard` using Chrome DevTools in Desktop mode.
 
-> ⚠️ Replace the placeholder values below with your actual recorded metrics before submission.
 
 | Metric | Result | Interpretation |
 |---|---|---|
